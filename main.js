@@ -1,22 +1,20 @@
 /*
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- *
+       Licensed to the Apache Software Foundation (ASF) under one
+       or more contributor license agreements.  See the NOTICE file
+       distributed with this work for additional information
+       regarding copyright ownership.  The ASF licenses this file
+       to you under the Apache License, Version 2.0 (the
+       "License"); you may not use this file except in compliance
+       with the License.  You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+       Unless required by applicable law or agreed to in writing,
+       software distributed under the License is distributed on an
+       "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+       KIND, either express or implied.  See the License for the
+       specific language governing permissions and limitations
+       under the License.
 */
 
 var deviceInfo = function() {
@@ -24,10 +22,13 @@ var deviceInfo = function() {
     document.getElementById("version").innerHTML = device.version;
     document.getElementById("uuid").innerHTML = device.uuid;
     document.getElementById("name").innerHTML = device.name;
-    document.getElementById("model").innerHTML = device.model;
     document.getElementById("width").innerHTML = screen.width;
     document.getElementById("height").innerHTML = screen.height;
     document.getElementById("colorDepth").innerHTML = screen.colorDepth;
+    var el = document.getElementById("cordova");
+    if (el) {
+    	el.innerHTML = device.cordova;
+    }
 };
 
 var getLocation = function() {
@@ -110,16 +111,6 @@ function close() {
     viewport.style.display = "none";
 }
 
-// This is just to do this.
-function readFile() {
-    navigator.file.read('/sdcard/cordova.txt', fail, fail);
-}
-
-function writeFile() {
-    navigator.file.write('foo.txt', "This is a test of writing to a file",
-            fail, fail);
-}
-
 function contacts_success(contacts) {
     alert(contacts.length
             + ' contacts returned.'
@@ -131,27 +122,43 @@ function get_contacts() {
     var obj = new ContactFindOptions();
     obj.filter = "";
     obj.multiple = true;
-    obj.limit = 5;
-    navigator.service.contacts.find(
+    navigator.contacts.find(
             [ "displayName", "name" ], contacts_success,
             fail, obj);
 }
 
-var networkReachableCallback = function(reachability) {
-    // There is no consistency on the format of reachability
-    var networkState = reachability.code || reachability;
-
-    var currentState = {};
-    currentState[NetworkStatus.NOT_REACHABLE] = 'No network connection';
-    currentState[NetworkStatus.REACHABLE_VIA_CARRIER_DATA_NETWORK] = 'Carrier data connection';
-    currentState[NetworkStatus.REACHABLE_VIA_WIFI_NETWORK] = 'WiFi connection';
-
-    confirm("Connection type:\n" + currentState[networkState]);
-};
-
 function check_network() {
-    navigator.network.isReachable("www.mobiledevelopersolutions.com",
-            networkReachableCallback, {});
+    var networkState = navigator.network.connection.type;
+
+    var states = {};
+    states[Connection.UNKNOWN]  = 'Unknown connection';
+    states[Connection.ETHERNET] = 'Ethernet connection';
+    states[Connection.WIFI]     = 'WiFi connection';
+    states[Connection.CELL_2G]  = 'Cell 2G connection';
+    states[Connection.CELL_3G]  = 'Cell 3G connection';
+    states[Connection.CELL_4G]  = 'Cell 4G connection';
+    states[Connection.NONE]     = 'No network connection';
+
+    confirm('Connection type:\n ' + states[networkState]);
+}
+
+var watchID = null;
+
+function updateHeading(h) {
+    document.getElementById('h').innerHTML = h.magneticHeading;
+}
+
+function toggleCompass() {
+    if (watchID !== null) {
+        navigator.compass.clearWatch(watchID);
+        watchID = null;
+        updateHeading({ magneticHeading : "Off"});
+    } else {        
+        var options = { frequency: 1000 };
+        watchID = navigator.compass.watchHeading(updateHeading, function(e) {
+            alert('Compass Error: ' + e.code);
+        }, options);
+    }
 }
 
 function init() {
@@ -159,5 +166,4 @@ function init() {
     // doesn't have a scroll button
     // document.addEventListener("touchmove", preventBehavior, false);
     document.addEventListener("deviceready", deviceInfo, true);
-    document.getElementById("user-agent").textContent = navigator.userAgent;
 }
